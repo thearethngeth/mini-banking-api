@@ -1,5 +1,8 @@
 package com.example.bank.service;
 
+import java.math.BigDecimal;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import com.example.bank.dto.AccountResponse;
 import com.example.bank.dto.CreateAccountRequest;
 import com.example.bank.entity.Account;
@@ -41,6 +44,28 @@ public class AccountService {
         Account account = accountRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
         return toResponse(account);
+    }
+
+    @Transactional
+    public AccountResponse deposit(Long id, BigDecimal amount) {
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+
+        account.setBalance(account.getBalance().add(amount));
+        return toResponse(accountRepository.save(account));
+    }
+
+    @Transactional
+    public AccountResponse withdraw(Long id, BigDecimal amount) {
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
+
+        if (account.getBalance().compareTo(amount) < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Insufficient funds");
+        }
+
+        account.setBalance(account.getBalance().subtract(amount));
+        return toResponse(accountRepository.save(account));
     }
 
     private String generateAccountNumber() {
